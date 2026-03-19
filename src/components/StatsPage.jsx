@@ -190,17 +190,17 @@ function LineChart({ data, isMobile, color = 'var(--accent)' }) {
   const show  = isMobile ? data.slice(-14) : data
   const max   = Math.max(...show.map(d => d.pages), 1)
   const total = show.reduce((s, d) => s + d.pages, 0)
-  const avg   = Math.round(total / show.filter(d => d.pages > 0).length || 0)
-  const W = 600, H = 120, PAD = 12
+  const avg   = Math.round(total / (show.filter(d => d.pages > 0).length || 1))
 
-  // Points de la courbe
+  // Dimensions avec marge gauche pour axe Y
+  const W = 560, H = 140, PADL = 36, PADR = 8, PADT = 10, PADB = 24
+
   const points = show.map((d, i) => ({
-    x: PAD + (i / (show.length - 1)) * (W - PAD * 2),
-    y: H - PAD - ((d.pages / max) * (H - PAD * 2)),
-    ...d,
+    x: PADL + (i / Math.max(show.length - 1, 1)) * (W - PADL - PADR),
+    y: PADT + ((1 - d.pages / max) * (H - PADT - PADB)),
+    ...d, i,
   }))
 
-  // Path SVG courbe lissée
   function smoothPath(pts) {
     if (pts.length < 2) return ''
     let d = `M ${pts[0].x} ${pts[0].y}`
@@ -212,91 +212,107 @@ function LineChart({ data, isMobile, color = 'var(--accent)' }) {
     return d
   }
 
-  // Path aire sous la courbe
-  function areaPath(pts) {
-    return smoothPath(pts) + ` L ${pts[pts.length-1].x} ${H} L ${pts[0].x} ${H} Z`
-  }
-
   const path = smoothPath(points)
-  const area = areaPath(points)
+  const area = smoothPath(points) + ` L ${points[points.length-1].x} ${H - PADB} L ${points[0].x} ${H - PADB} Z`
 
-  // Labels axe X — afficher seulement quelques labels
-  const labelStep = isMobile ? 3 : Math.ceil(show.length / 6)
-  const labels = show.map((d, i) => i % labelStep === 0 ? { i, label: d.label } : null).filter(Boolean)
+  // Axe Y — 4 valeurs lisibles
+  const yTicks = [0, 0.33, 0.66, 1].map(p => ({
+    y: PADT + ((1 - p) * (H - PADT - PADB)),
+    val: Math.round(p * max),
+  }))
+
+  // Axe X — début, milieu, fin
+  const xLabels = [
+    show[0],
+    show[Math.floor(show.length / 2)],
+    show[show.length - 1],
+  ].map((d, i) => ({
+    label: d?.label || '',
+    x: i === 0 ? PADL : i === 1 ? W / 2 : W - PADR,
+    anchor: i === 0 ? 'start' : i === 1 ? 'middle' : 'end',
+  }))
+
+  const gradId = `grad${color.replace(/[^a-zA-Z0-9]/g,'')}`
 
   return (
     <div>
-      {/* Légende */}
-      <div style={{ display: 'flex', gap: 20, marginBottom: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-          Total : <span style={{ color: 'var(--text)', fontWeight: 500 }}>{total} pages</span>
-        </div>
-        {avg > 0 && (
-          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-            Moyenne : <span style={{ color: 'var(--text)', fontWeight: 500 }}>{avg} pages/jour</span>
+      {/* Légende stats */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
+        <Stat label="Total" value={`${total} p.`} />
+        {avg > 0 && <Stat label="Moyenne" value={`${avg} p./j`} />}
+        <Stat label="Record" value={`${max} p.`} color={color} />
+      </div>
+
+      {/* Tooltip fixe en haut */}
+      <div style={{ height: 24, marginBottom: 4 }}>
+        {tooltip ? (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 8, padding: '4px 12px', fontSize: 12, animation: 'fadeIn 0.1s ease' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
+            <span style={{ color: 'var(--text2)' }}>{tooltip.label}</span>
+            <span style={{ fontWeight: 600, color: 'var(--text)' }}>{tooltip.pages} page{tooltip.pages > 1 ? 's' : ''}</span>
           </div>
-        )}
-        {max > 0 && (
-          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-            Record : <span style={{ color, fontWeight: 500 }}>{max} pages</span>
+        ) : (
+          <div style={{ fontSize: 11, color: 'var(--text3)', paddingTop: 4 }}>
+            Appuyez sur un point pour voir la valeur
           </div>
         )}
       </div>
 
-      {/* Tooltip */}
-      {tooltip && (
-        <div style={{ background: 'var(--text)', color: 'var(--bg)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 500, marginBottom: 8, display: 'inline-block', animation: 'fadeIn 0.1s ease' }}>
-          {tooltip.label} — {tooltip.pages} page{tooltip.pages > 1 ? 's' : ''}
-        </div>
-      )}
+      {/* SVG */}
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: isMobile ? 110 : 140 }}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
 
-      {/* SVG courbe */}
-      <div style={{ position: 'relative' }}>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: isMobile ? 90 : 120, overflow: 'visible' }}>
-          <defs>
-            <linearGradient id={`grad-${color.replace(/[^a-z]/g,'')}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity="0.15" />
-              <stop offset="100%" stopColor={color} stopOpacity="0" />
-            </linearGradient>
-          </defs>
+        {/* Axe Y — lignes + valeurs */}
+        {yTicks.map((t, i) => (
+          <g key={i}>
+            <line x1={PADL} y1={t.y} x2={W - PADR} y2={t.y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3" />
+            <text x={PADL - 4} y={t.y + 4} textAnchor="end" fontSize="9" fill="var(--text3)">{t.val}</text>
+          </g>
+        ))}
 
-          {/* Lignes horizontales */}
-          {[0.25, 0.5, 0.75, 1].map(p => (
-            <line key={p}
-              x1={PAD} y1={H - PAD - p * (H - PAD * 2)}
-              x2={W - PAD} y2={H - PAD - p * (H - PAD * 2)}
-              stroke="var(--border)" strokeWidth="0.5" strokeDasharray="4,4"
-            />
-          ))}
+        {/* Ligne de base */}
+        <line x1={PADL} y1={H - PADB} x2={W - PADR} y2={H - PADB} stroke="var(--border2)" strokeWidth="0.5" />
 
-          {/* Aire */}
-          <path d={area} fill={`url(#grad-${color.replace(/[^a-z]/g,'')})`} />
+        {/* Aire */}
+        <path d={area} fill={`url(#${gradId})`} />
 
-          {/* Courbe */}
-          <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Courbe */}
+        <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* Points interactifs */}
-          {points.map((p, i) => p.pages > 0 && (
-            <circle
-              key={i} cx={p.x} cy={p.y} r="4"
-              fill="var(--surface)" stroke={color} strokeWidth="2"
-              style={{ cursor: 'pointer' }}
-              onMouseEnter={() => setTooltip(p)}
-              onMouseLeave={() => setTooltip(null)}
-              onClick={() => setTooltip(tooltip?.i === i ? null : { ...p, i })}
-            />
-          ))}
-        </svg>
+        {/* Points */}
+        {points.map((p, i) => (
+          <circle
+            key={i} cx={p.x} cy={p.y}
+            r={tooltip?.i === i ? 5 : 3.5}
+            fill={p.pages > 0 ? (tooltip?.i === i ? color : 'var(--surface)') : 'transparent'}
+            stroke={p.pages > 0 ? color : 'transparent'}
+            strokeWidth="2"
+            style={{ cursor: 'pointer', transition: 'r 0.15s' }}
+            onMouseEnter={() => setTooltip(p)}
+            onMouseLeave={() => setTooltip(null)}
+            onClick={() => setTooltip(tooltip?.i === i ? null : p)}
+          />
+        ))}
 
-        {/* Labels axe X */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingLeft: PAD / 6 + '%', paddingRight: PAD / 6 + '%' }}>
-          {labels.map(({ i, label }) => (
-            <span key={i} style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center' }}>
-              {label.split(' ').join('\n')}
-            </span>
-          ))}
-        </div>
-      </div>
+        {/* Axe X — 3 dates */}
+        {xLabels.map((l, i) => (
+          <text key={i} x={l.x} y={H - 4} textAnchor={l.anchor} fontSize="9" fill="var(--text3)">{l.label}</text>
+        ))}
+      </svg>
+    </div>
+  )
+}
+
+function Stat({ label, value, color }) {
+  return (
+    <div style={{ fontSize: 12 }}>
+      <span style={{ color: 'var(--text3)' }}>{label} </span>
+      <span style={{ fontWeight: 600, color: color || 'var(--text)' }}>{value}</span>
     </div>
   )
 }
