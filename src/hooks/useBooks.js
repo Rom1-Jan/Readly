@@ -14,7 +14,7 @@ export function useBooks(userId) {
     Promise.all([
       supabase.from('books').select('*').eq('user_id', userId).order('updated_at', { ascending: false }),
       supabase.from('reading_sessions').select('*').eq('user_id', userId).order('session_at', { ascending: false }),
-      supabase.from('reading_goals').select('*').eq('user_id', userId).eq('year', year).single(),
+      supabase.from('reading_goals').select('*').eq('user_id', userId).eq('year', year).maybeSingle(),
     ]).then(([{ data: b }, { data: s }, { data: g }]) => {
       setBooks(b || [])
       setSessions(s || [])

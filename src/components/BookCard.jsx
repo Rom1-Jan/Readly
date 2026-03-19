@@ -8,12 +8,12 @@ const STATUS = {
 
 export default function BookCard({ book, sessions, onClick, onDelete }) {
   const [hov, setHov] = useState(false)
-  const totalPagesRead    = bookSessions.reduce((s, r) => s + (r.pages_read || 0), 0)
+  const bookSessions       = sessions.filter(s => s.book_id === book.id)
+  const totalPagesRead     = bookSessions.reduce((s, r) => s + (r.pages_read || 0), 0)
   const sessionCurrentPage = Math.min(totalPagesRead, book.total_pages || 99999)
   const pct                = book.total_pages > 0 ? Math.min(Math.round((sessionCurrentPage / book.total_pages) * 100), 100) : 0
-  const st  = STATUS[book.status] || STATUS.to_read
-  const bookSessions = sessions.filter(s => s.book_id === book.id)
-  const totalMin = bookSessions.reduce((s, r) => s + (r.duration || 0), 0)
+  const st                 = STATUS[book.status] || STATUS.to_read
+  const totalMin           = bookSessions.reduce((s, r) => s + (r.duration || 0), 0)
 
   return (
     <div
@@ -31,14 +31,12 @@ export default function BookCard({ book, sessions, onClick, onDelete }) {
         animation: 'fadeIn 0.2s ease', position: 'relative',
       }}
     >
-      {/* Cover */}
       <div style={{ width: 56, height: 82, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'var(--surface3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {book.cover_url
           ? <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <span style={{ fontSize: 22 }}>📖</span>}
       </div>
 
-      {/* Info */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
