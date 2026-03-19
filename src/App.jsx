@@ -11,6 +11,8 @@ import SearchModal     from './components/SearchModal'
 import StatsPage       from './components/StatsPage'
 import FriendsPage     from './components/FriendsPage'
 import FriendProfile   from './components/FriendProfile'
+import ProfilePage     from './components/ProfilePage'
+import { useProfile }  from './hooks/useProfile'
 import './styles/globals.css'
 
 function useIsMobile() {
@@ -33,6 +35,7 @@ export default function App() {
 function Dashboard({ user, onLogout }) {
   const { books, sessions, goal, loading, stats, addBook, updateBook, deleteBook, addSession, setReadingGoal } = useBooks(user.id)
   const { friends, pendingReceived, pendingSent, searchUsers, sendRequest, acceptRequest, declineOrRemove, getFriendshipStatus } = useFriends(user.id)
+  const { profile, updateProfile, uploadAvatar, updateEmail, updatePassword } = useProfile(user.id)
 
   const [page,          setPage]          = useState('home')
   const [activeBook,    setActiveBook]    = useState(null)
@@ -47,7 +50,7 @@ function Dashboard({ user, onLogout }) {
     done:    books.filter(b => b.status === 'done'),
   }[page] || books
 
-  const pageTitle = { home: 'Ma bibliothèque', reading: 'En cours', toread: 'À lire', done: 'Lus', stats: 'Statistiques', friends: 'Amis' }
+  const pageTitle = { home: 'Ma bibliothèque', reading: 'En cours', toread: 'À lire', done: 'Lus', stats: 'Statistiques', friends: 'Amis', profile: 'Mon profil' }
   const pendingCount = pendingReceived.length
 
   function handlePageChange(p) { setPage(p); setActiveBook(null) }
@@ -59,7 +62,7 @@ function Dashboard({ user, onLogout }) {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {!isMobile && (
-        <Sidebar page={page} onPage={handlePageChange} stats={stats} pendingCount={pendingCount} user={user} onLogout={onLogout} />
+        <Sidebar page={page} onPage={handlePageChange} stats={stats} pendingCount={pendingCount} user={user} profile={profile} onLogout={onLogout} />
       )}
 
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
@@ -72,7 +75,7 @@ function Dashboard({ user, onLogout }) {
           {!isMobile && page !== 'stats' && page !== 'friends' && (
             <span style={{ fontSize: 12, color: 'var(--text3)' }}>{visibleBooks.length} livre{visibleBooks.length !== 1 ? 's' : ''}</span>
           )}
-          {page !== 'friends' && page !== 'stats' && (
+          {page !== 'friends' && page !== 'stats' && page !== 'profile' && (
             <button onClick={() => setShowSearch(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: isMobile ? '8px 12px' : '9px 18px', borderRadius: 'var(--radius-sm)', border: 'none', background: '#1a1814', color: '#faf9f7', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
               {!isMobile && 'Ajouter un livre'}
@@ -86,6 +89,17 @@ function Dashboard({ user, onLogout }) {
         {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 12px 100px' : '24px 28px' }}>
           {page === 'stats' && <StatsPage stats={stats} books={books} sessions={sessions} isMobile={isMobile} goal={goal} onSetGoal={setReadingGoal} />}
+
+          {page === 'profile' && (
+            <ProfilePage
+              profile={profile}
+              onUpdateProfile={updateProfile}
+              onUploadAvatar={uploadAvatar}
+              onUpdateEmail={updateEmail}
+              onUpdatePassword={updatePassword}
+              isMobile={isMobile}
+            />
+          )}
 
           {page === 'friends' && (
             <FriendsPage

@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import Avatar from './Avatar'
 
-export default function Sidebar({ page, onPage, stats, pendingCount, user, onLogout }) {
+export default function Sidebar({ page, onPage, stats, pendingCount, user, profile, onLogout }) {
   const navItems = [
     { id: 'home',    icon: '⊞', label: 'Accueil' },
     { id: 'reading', icon: '📖', label: 'En cours' },
@@ -16,15 +17,29 @@ export default function Sidebar({ page, onPage, stats, pendingCount, user, onLog
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 400, letterSpacing: -0.5 }}>Readly</div>
         <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>Bibliothèque personnelle</div>
       </div>
+
       <nav style={{ flex: 1, padding: '0 8px' }}>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.6px', textTransform: 'uppercase', padding: '0 12px 8px' }}>Navigation</div>
         {navItems.map(item => (
           <NavBtn key={item.id} item={item} active={page === item.id} count={getCount(item.id, stats)} onClick={() => onPage(item.id)} />
         ))}
       </nav>
-      <div style={{ padding: '16px 16px 0', borderTop: '1px solid var(--border)' }}>
-        <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
-        <button onClick={onLogout} style={{ width: '100%', padding: 7, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}>Déconnexion</button>
+
+      {/* Footer profil */}
+      <div style={{ padding: '12px 12px 0', borderTop: '1px solid var(--border)', marginTop: 'auto' }}>
+        <div
+          onClick={() => onPage('profile')}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', transition: 'background var(--transition)', background: page === 'profile' ? 'var(--surface2)' : 'transparent' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+          onMouseLeave={e => e.currentTarget.style.background = page === 'profile' ? 'var(--surface2)' : 'transparent'}
+        >
+          <Avatar profile={profile} size={32} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.username || 'Mon profil'}</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
+          </div>
+        </div>
+        <button onClick={onLogout} style={{ width: '100%', padding: '7px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--text2)', background: 'none', cursor: 'pointer', marginTop: 8 }}>Déconnexion</button>
       </div>
     </aside>
   )

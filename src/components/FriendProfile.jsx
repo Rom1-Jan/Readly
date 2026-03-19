@@ -49,12 +49,18 @@ export default function FriendProfile({ friendId, profile, onClose, isMobile }) 
           {isMobile && (
             <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, color: 'var(--text2)', cursor: 'pointer', padding: '0 4px 0 0' }}>←</button>
           )}
-          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--surface3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 500, color: 'var(--text2)', flexShrink: 0 }}>
-            {initials}
-          </div>
+          <AvatarDisplay profile={profile} size={48} />
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 400 }}>{profile?.username || 'Utilisateur'}</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)' }}>{profile?.email}</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: profile?.bio ? 4 : 0 }}>{profile?.email}</div>
+            {profile?.bio && <div style={{ fontSize: 12, color: 'var(--text2)', fontStyle: 'italic' }}>{profile.bio}</div>}
+            {profile?.genres?.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                {profile.genres.slice(0, 4).map(g => (
+                  <span key={g} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: 'var(--surface3)', color: 'var(--text3)' }}>{g}</span>
+                ))}
+              </div>
+            )}
           </div>
           {!isMobile && (
             <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, color: 'var(--text3)', cursor: 'pointer' }}>×</button>
@@ -142,6 +148,19 @@ function FriendBookRow({ book, sessions }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function AvatarDisplay({ profile, size }) {
+  const initials = (profile?.username || profile?.email || '?').slice(0, 2).toUpperCase()
+  const colors = ['#2980b9', '#8a44f2', '#27ae60', '#c96800', '#cc2e26', '#0077a8', '#cc1844']
+  const color  = profile?.id ? colors[profile.id.charCodeAt(0) % colors.length] : colors[0]
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', background: profile?.avatar_url ? 'var(--surface3)' : color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.35, fontWeight: 500, color: '#fff', flexShrink: 0 }}>
+      {profile?.avatar_url
+        ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display='none'} />
+        : initials}
     </div>
   )
 }
