@@ -10,7 +10,10 @@ export default function BookCard({ book, sessions, onClick, onDelete }) {
   const [hov, setHov] = useState(false)
   const bookSessions       = sessions.filter(s => s.book_id === book.id)
   const totalPagesRead     = bookSessions.reduce((s, r) => s + (r.pages_read || 0), 0)
-  const sessionCurrentPage = Math.min(totalPagesRead, book.total_pages || 99999)
+  // Si lu → 100%, sinon calculé depuis les sessions
+  const sessionCurrentPage = book.status === 'done'
+    ? (book.total_pages || totalPagesRead)
+    : Math.min(totalPagesRead, book.total_pages || 99999)
   const pct                = book.total_pages > 0 ? Math.min(Math.round((sessionCurrentPage / book.total_pages) * 100), 100) : 0
   const st                 = STATUS[book.status] || STATUS.to_read
   const totalMin           = bookSessions.reduce((s, r) => s + (r.duration || 0), 0)
@@ -53,7 +56,7 @@ export default function BookCard({ book, sessions, onClick, onDelete }) {
         {book.status === 'reading' && book.total_pages > 0 && (
           <div style={{ marginTop: 4 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>
-              <span>Page {sessionCurrentPage} / {book.total_pages}</span>
+              <span>Page {book.current_page} / {book.total_pages}</span>
               <span>{pct}%</span>
             </div>
             <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 2 }}>

@@ -20,11 +20,11 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
   if (!book) return null
 
   const bookSessions = sessions.filter(s => s.book_id === book.id)
-  const totalMin        = bookSessions.reduce((s, r) => s + (r.duration || 0), 0)
-  const totalPages      = bookSessions.reduce((s, r) => s + (r.pages_read || 0), 0)
+  const totalMin           = bookSessions.reduce((s, r) => s + (r.duration || 0), 0)
+  const totalPages         = bookSessions.reduce((s, r) => s + (r.pages_read || 0), 0)
   const sessionCurrentPage = Math.min(totalPages, book.total_pages || 99999)
-  const sessionPct      = book.total_pages > 0 ? Math.min(Math.round((sessionCurrentPage / book.total_pages) * 100), 100) : 0
-  const pct             = sessionPct
+  const sessionPct         = book.total_pages > 0 ? Math.min(Math.round((sessionCurrentPage / book.total_pages) * 100), 100) : 0
+  const pct                = book.total_pages > 0 ? Math.min(Math.round((book.current_page / book.total_pages) * 100), 100) : 0
 
   const panel = (
     <div style={{
@@ -55,10 +55,13 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
                 changes.current_page = 0
                 changes.started_at   = null
                 changes.finished_at  = null
+              } else if (newStatus === 'done') {
+                // En cours → Lu = forcer 100%
+                changes.current_page = book.total_pages || book.current_page
+                changes.finished_at  = new Date().toISOString().split('T')[0]
               } else if (newStatus === 'reading' && book.status === 'done') {
-                // Lu → En cours = repart de 0, ajoutez une session pour avancer
-                changes.current_page = 0
-                changes.finished_at  = null
+                // Lu → En cours = garder le % des sessions (current_page inchangé)
+                changes.finished_at = null
               } else if (newStatus === 'reading' && book.status === 'to_read') {
                 changes.started_at = new Date().toISOString().split('T')[0]
               }
@@ -77,10 +80,10 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--surface2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text2)', marginBottom: 6 }}>
             <span>Progression</span>
-            <span style={{ fontWeight: 500 }}>Page {sessionCurrentPage} / {book.total_pages} — {sessionPct}%</span>
+            <span style={{ fontWeight: 500 }}>Page {book.current_page} / {book.total_pages} — {pct}%</span>
           </div>
           <div style={{ height: 5, background: 'var(--surface3)', borderRadius: 3 }}>
-            <div style={{ height: '100%', width: sessionPct + '%', background: 'var(--accent)', borderRadius: 3, transition: 'width 0.4s' }} />
+            <div style={{ height: '100%', width: pct + '%', background: 'var(--accent)', borderRadius: 3, transition: 'width 0.4s' }} />
           </div>
         </div>
       )}
@@ -119,7 +122,10 @@ function InfoTab({ book, onUpdate, totalMin, totalPages }) {
   const h   = Math.floor(totalMin / 60)
   const min = totalMin % 60
   // Page actuelle = calculée depuis les sessions (totalPages = somme pages_read)
-  const currentPage = Math.min(totalPages, book.total_pages || 99999)
+  // Si lu → 100%, sinon calculé depuis les sessions
+  const currentPage = book.status === 'done'
+    ? (book.total_pages || totalPages)
+    : Math.min(totalPages, book.total_pages || 99999)
   const pct = book.total_pages > 0 ? Math.min(Math.round((currentPage / book.total_pages) * 100), 100) : 0
 
   return (
