@@ -45,7 +45,23 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>{book.author}</div>
           <select
             value={book.status}
-            onChange={e => onUpdate(book.id, { status: e.target.value })}
+            onChange={e => {
+              const newStatus = e.target.value
+              const changes = { status: newStatus }
+              if (newStatus === 'to_read') {
+                // À lire = tout reset
+                changes.current_page = 0
+                changes.started_at   = null
+                changes.finished_at  = null
+              } else if (newStatus === 'reading' && book.status === 'done') {
+                // Lu → En cours = on garde la page, on efface juste la date de fin
+                changes.finished_at = null
+              } else if (newStatus === 'reading' && book.status === 'to_read') {
+                // À lire → En cours = on démarre
+                changes.started_at = new Date().toISOString().split('T')[0]
+              }
+              onUpdate(book.id, changes)
+            }}
             style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', cursor: 'pointer', outline: 'none' }}
           >
             {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
