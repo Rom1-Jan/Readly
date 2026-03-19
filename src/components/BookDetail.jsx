@@ -60,8 +60,9 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
                 changes.current_page = book.total_pages || book.current_page
                 changes.finished_at  = new Date().toISOString().split('T')[0]
               } else if (newStatus === 'reading' && book.status === 'done') {
-                // Lu → En cours = garder le % des sessions (current_page inchangé)
-                changes.finished_at = null
+                // Lu → En cours = remet current_page au total des sessions
+                changes.current_page = sessionCurrentPage
+                changes.finished_at  = null
               } else if (newStatus === 'reading' && book.status === 'to_read') {
                 changes.started_at = new Date().toISOString().split('T')[0]
               }
