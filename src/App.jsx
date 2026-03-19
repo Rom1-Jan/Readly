@@ -37,7 +37,7 @@ function Dashboard({ user, onLogout }) {
   const { friends, pendingReceived, pendingSent, searchUsers, sendRequest, acceptRequest, declineOrRemove, getFriendshipStatus } = useFriends(user.id)
   const { profile, updateProfile, uploadAvatar, updateEmail, updatePassword } = useProfile(user.id)
 
-  const [page,          setPage]          = useState('home')
+  const [page,          setPage]          = useState(() => localStorage.getItem('readly_page') || 'home')
   const [activeBook,    setActiveBook]    = useState(null)
   const [showSearch,    setShowSearch]    = useState(false)
   const [viewingFriend, setViewingFriend] = useState(null) // { friendId, profile }
@@ -53,7 +53,7 @@ function Dashboard({ user, onLogout }) {
   const pageTitle = { home: 'Ma bibliothèque', reading: 'En cours', toread: 'À lire', done: 'Lus', stats: 'Statistiques', friends: 'Amis', profile: 'Mon profil' }
   const pendingCount = pendingReceived.length
 
-  function handlePageChange(p) { setPage(p); setActiveBook(null) }
+  function handlePageChange(p) { setPage(p); setActiveBook(null); localStorage.setItem('readly_page', p) }
 
   function handleViewFriendProfile(friendId, profile) {
     setViewingFriend({ friendId, profile })
