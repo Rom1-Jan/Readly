@@ -54,10 +54,10 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
                 changes.started_at   = null
                 changes.finished_at  = null
               } else if (newStatus === 'reading' && book.status === 'done') {
-                // Lu → En cours = on garde la page, on efface juste la date de fin
-                changes.finished_at = null
+                // Lu → En cours = repart de 0, ajoutez une session pour avancer
+                changes.current_page = 0
+                changes.finished_at  = null
               } else if (newStatus === 'reading' && book.status === 'to_read') {
-                // À lire → En cours = on démarre
                 changes.started_at = new Date().toISOString().split('T')[0]
               }
               onUpdate(book.id, changes)
@@ -116,18 +116,19 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
 function InfoTab({ book, onUpdate, totalMin, totalPages }) {
   const h   = Math.floor(totalMin / 60)
   const min = totalMin % 60
+  const pct = book.total_pages > 0 ? Math.min(Math.round((book.current_page / book.total_pages) * 100), 100) : 0
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {[
           { label: 'Pages totales', value: book.total_pages || '—' },
-          { label: 'Page actuelle', value: book.current_page || '—' },
+          { label: 'Page actuelle', value: book.current_page > 0 ? `${book.current_page} (${pct}%)` : '—' },
           { label: 'Temps total',   value: totalMin === 0 ? '—' : h > 0 ? `${h}h ${min}m` : `${min} min` },
-          { label: 'Pages lues',    value: totalPages || '—' },
+          { label: 'Sessions',      value: totalPages > 0 ? `${totalPages} p. lues` : '—' },
         ].map((s, i) => (
           <div key={i} style={{ background: 'var(--surface2)', borderRadius: 'var(--radius-sm)', padding: '12px 14px' }}>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>{s.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 500, fontFamily: 'var(--font-display)' }}>{s.value}</div>
+            <div style={{ fontSize: 18, fontWeight: 500, fontFamily: 'var(--font-display)' }}>{s.value}</div>
           </div>
         ))}
       </div>
