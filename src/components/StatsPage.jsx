@@ -52,7 +52,7 @@ export default function StatsPage({ stats, books, sessions, isMobile, goal, onSe
       {stats.pagesPerDay && stats.pagesPerDay.some(d => d.pages > 0) && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20, marginBottom: 16 }}>
           <SectionTitle>Pages lues — 30 derniers jours</SectionTitle>
-          <BarChart data={stats.pagesPerDay} isMobile={isMobile} />
+          <LineChart data={stats.pagesPerDay} isMobile={isMobile} color='var(--accent)' />
         </div>
       )}
 
@@ -60,7 +60,7 @@ export default function StatsPage({ stats, books, sessions, isMobile, goal, onSe
       {stats.pagesPerWeek && stats.pagesPerWeek.some(d => d.pages > 0) && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20, marginBottom: 16 }}>
           <SectionTitle>Pages lues — 12 dernières semaines</SectionTitle>
-          <BarChart data={stats.pagesPerWeek} isMobile={isMobile} color="var(--amber)" />
+          <LineChart data={stats.pagesPerWeek} isMobile={isMobile} color='var(--amber)' />
         </div>
       )}
 
@@ -185,20 +185,118 @@ function GoalCard({ goal, onSetGoal }) {
   )
 }
 
-function BarChart({ data, isMobile, color = 'var(--accent)' }) {
-  const max = Math.max(...data.map(d => d.pages), 1)
-  const show = isMobile ? data.slice(-14) : data
+function LineChart({ data, isMobile, color = 'var(--accent)' }) {
+  const [tooltip, setTooltip] = useState(null)
+  const show  = isMobile ? data.slice(-14) : data
+  const max   = Math.max(...show.map(d => d.pages), 1)
+  const total = show.reduce((s, d) => s + d.pages, 0)
+  const avg   = Math.round(total / show.filter(d => d.pages > 0).length || 0)
+  const W = 600, H = 120, PAD = 12
+
+  // Points de la courbe
+  const points = show.map((d, i) => ({
+    x: PAD + (i / (show.length - 1)) * (W - PAD * 2),
+    y: H - PAD - ((d.pages / max) * (H - PAD * 2)),
+    ...d,
+  }))
+
+  // Path SVG courbe lissée
+  function smoothPath(pts) {
+    if (pts.length < 2) return ''
+    let d = `M ${pts[0].x} ${pts[0].y}`
+    for (let i = 1; i < pts.length; i++) {
+      const cp1x = pts[i-1].x + (pts[i].x - pts[i-1].x) / 2
+      const cp2x = pts[i-1].x + (pts[i].x - pts[i-1].x) / 2
+      d += ` C ${cp1x} ${pts[i-1].y}, ${cp2x} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`
+    }
+    return d
+  }
+
+  // Path aire sous la courbe
+  function areaPath(pts) {
+    return smoothPath(pts) + ` L ${pts[pts.length-1].x} ${H} L ${pts[0].x} ${H} Z`
+  }
+
+  const path = smoothPath(points)
+  const area = areaPath(points)
+
+  // Labels axe X — afficher seulement quelques labels
+  const labelStep = isMobile ? 3 : Math.ceil(show.length / 6)
+  const labels = show.map((d, i) => i % labelStep === 0 ? { i, label: d.label } : null).filter(Boolean)
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: isMobile ? 3 : 4, height: 100, marginTop: 8 }}>
-      {show.map((d, i) => {
-        const h = Math.max(Math.round((d.pages / max) * 100), d.pages > 0 ? 4 : 0)
-        return (
-          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }} title={`${d.label} : ${d.pages} pages`}>
-            <div style={{ width: '100%', height: h + '%', background: d.pages > 0 ? color : 'var(--surface3)', borderRadius: '3px 3px 0 0', transition: 'height 0.4s', opacity: d.pages > 0 ? 1 : 0.4 }} />
+    <div>
+      {/* Légende */}
+      <div style={{ display: 'flex', gap: 20, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+          Total : <span style={{ color: 'var(--text)', fontWeight: 500 }}>{total} pages</span>
+        </div>
+        {avg > 0 && (
+          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+            Moyenne : <span style={{ color: 'var(--text)', fontWeight: 500 }}>{avg} pages/jour</span>
           </div>
-        )
-      })}
+        )}
+        {max > 0 && (
+          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+            Record : <span style={{ color, fontWeight: 500 }}>{max} pages</span>
+          </div>
+        )}
+      </div>
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div style={{ background: 'var(--text)', color: 'var(--bg)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 500, marginBottom: 8, display: 'inline-block', animation: 'fadeIn 0.1s ease' }}>
+          {tooltip.label} — {tooltip.pages} page{tooltip.pages > 1 ? 's' : ''}
+        </div>
+      )}
+
+      {/* SVG courbe */}
+      <div style={{ position: 'relative' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: isMobile ? 90 : 120, overflow: 'visible' }}>
+          <defs>
+            <linearGradient id={`grad-${color.replace(/[^a-z]/g,'')}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.15" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Lignes horizontales */}
+          {[0.25, 0.5, 0.75, 1].map(p => (
+            <line key={p}
+              x1={PAD} y1={H - PAD - p * (H - PAD * 2)}
+              x2={W - PAD} y2={H - PAD - p * (H - PAD * 2)}
+              stroke="var(--border)" strokeWidth="0.5" strokeDasharray="4,4"
+            />
+          ))}
+
+          {/* Aire */}
+          <path d={area} fill={`url(#grad-${color.replace(/[^a-z]/g,'')})`} />
+
+          {/* Courbe */}
+          <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Points interactifs */}
+          {points.map((p, i) => p.pages > 0 && (
+            <circle
+              key={i} cx={p.x} cy={p.y} r="4"
+              fill="var(--surface)" stroke={color} strokeWidth="2"
+              style={{ cursor: 'pointer' }}
+              onMouseEnter={() => setTooltip(p)}
+              onMouseLeave={() => setTooltip(null)}
+              onClick={() => setTooltip(tooltip?.i === i ? null : { ...p, i })}
+            />
+          ))}
+        </svg>
+
+        {/* Labels axe X */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingLeft: PAD / 6 + '%', paddingRight: PAD / 6 + '%' }}>
+          {labels.map(({ i, label }) => (
+            <span key={i} style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center' }}>
+              {label.split(' ').join('\n')}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
