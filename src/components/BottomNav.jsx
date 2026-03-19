@@ -1,7 +1,7 @@
 const items = [
   { id: 'home',    icon: '⊞', label: 'Biblio' },
   { id: 'reading', icon: '📖', label: 'En cours' },
-  { id: 'toread',  icon: '🔖', label: 'À lire' },
+  { id: 'stats',   icon: '📊', label: 'Stats' },
   { id: 'friends', icon: '👥', label: 'Amis' },
   { id: 'profile', icon: '👤', label: 'Profil' },
 ]
