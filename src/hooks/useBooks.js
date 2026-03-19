@@ -32,11 +32,26 @@ export function useBooks(userId) {
   }, [userId])
 
   const updateBook = useCallback(async (id, changes) => {
+    // Si on passe en "done", forcer current_page = total_pages
+    if (changes.status === 'done') {
+      const book = books.find(b => b.id === id)
+      if (book && book.total_pages > 0) {
+        changes = {
+          ...changes,
+          current_page: book.total_pages,
+          finished_at: changes.finished_at || new Date().toISOString().split('T')[0],
+        }
+      }
+    }
+    // Si on repasse en "reading" ou "to_read", on retire finished_at
+    if (changes.status === 'reading' || changes.status === 'to_read') {
+      changes = { ...changes, finished_at: null }
+    }
     const { data, error } = await supabase.from('books').update(changes).eq('id', id).select().single()
     if (error) throw error
     setBooks(p => p.map(b => b.id === id ? data : b))
     return data
-  }, [])
+  }, [books])
 
   const deleteBook = useCallback(async (id) => {
     const { error } = await supabase.from('books').delete().eq('id', id)
@@ -68,7 +83,7 @@ export function useBooks(userId) {
 
     const bookUpdates = { current_page: newPage }
     if (book.status === 'to_read') { bookUpdates.status = 'reading'; bookUpdates.started_at = new Date().toISOString().split('T')[0] }
-    if (isFinished) { bookUpdates.status = 'done'; bookUpdates.finished_at = new Date().toISOString().split('T')[0] }
+    if (isFinished) { bookUpdates.status = 'done'; bookUpdates.finished_at = new Date().toISOString().split('T')[0]; bookUpdates.current_page = book.total_pages }
     const updated = await updateBook(bookId, bookUpdates)
     setSessions(p => [session, ...p])
     return { session, book: updated }
