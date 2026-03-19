@@ -92,14 +92,26 @@ export function useFriends(userId) {
 
   // Accepter une demande
   const acceptRequest = useCallback(async (friendshipId) => {
-    const { error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId)
+    const { data, error } = await supabase
+      .from('friendships')
+      .update({ status: 'accepted' })
+      .eq('id', friendshipId)
+      .select()
+      .single()
     if (error) throw error
-  }, [])
+    setFriendships(p => p.map(f => f.id === friendshipId ? { ...f, status: 'accepted' } : f))
+    if (data) {
+      const otherId = data.requester_id === userId ? data.addressee_id : data.requester_id
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', otherId).single()
+      if (prof) setProfiles(p => ({ ...p, [prof.id]: prof }))
+    }
+  }, [userId, profiles])
 
   // Refuser / supprimer
   const declineOrRemove = useCallback(async (friendshipId) => {
     const { error } = await supabase.from('friendships').delete().eq('id', friendshipId)
     if (error) throw error
+    setFriendships(p => p.filter(f => f.id !== friendshipId))
   }, [])
 
   // Statut avec un user
