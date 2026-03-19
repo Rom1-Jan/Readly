@@ -116,15 +116,17 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
 function InfoTab({ book, onUpdate, totalMin, totalPages }) {
   const h   = Math.floor(totalMin / 60)
   const min = totalMin % 60
-  const pct = book.total_pages > 0 ? Math.min(Math.round((book.current_page / book.total_pages) * 100), 100) : 0
+  // Page actuelle = calculée depuis les sessions (totalPages = somme pages_read)
+  const currentPage = Math.min(totalPages, book.total_pages || 99999)
+  const pct = book.total_pages > 0 ? Math.min(Math.round((currentPage / book.total_pages) * 100), 100) : 0
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {[
           { label: 'Pages totales', value: book.total_pages || '—' },
-          { label: 'Page actuelle', value: book.current_page > 0 ? `${book.current_page} (${pct}%)` : '—' },
+          { label: 'Page actuelle', value: currentPage > 0 ? `${currentPage} (${pct}%)` : '—' },
           { label: 'Temps total',   value: totalMin === 0 ? '—' : h > 0 ? `${h}h ${min}m` : `${min} min` },
-          { label: 'Sessions',      value: totalPages > 0 ? `${totalPages} p. lues` : '—' },
         ].map((s, i) => (
           <div key={i} style={{ background: 'var(--surface2)', borderRadius: 'var(--radius-sm)', padding: '12px 14px' }}>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>{s.label}</div>
@@ -132,9 +134,6 @@ function InfoTab({ book, onUpdate, totalMin, totalPages }) {
           </div>
         ))}
       </div>
-      <Field label="Pages totales du livre">
-        <input type="number" min="0" defaultValue={book.total_pages || ''} placeholder="Ex : 320" onBlur={e => onUpdate(book.id, { total_pages: parseInt(e.target.value) || 0 })} style={inp} />
-      </Field>
       <Field label="Date de début">
         <input type="date" defaultValue={book.started_at || ''} onBlur={e => onUpdate(book.id, { started_at: e.target.value || null })} style={inp} />
       </Field>
