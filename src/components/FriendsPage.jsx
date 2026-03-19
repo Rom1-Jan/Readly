@@ -1,3 +1,4 @@
+import Avatar from './Avatar'
 import { useState, useRef, useEffect } from 'react'
 
 export default function FriendsPage({ friends, pendingReceived, pendingSent, onSearch, onSendRequest, onAccept, onDecline, onViewProfile, getFriendshipStatus, isMobile }) {
@@ -125,12 +126,9 @@ export default function FriendsPage({ friends, pendingReceived, pendingSent, onS
 }
 
 function FriendRow({ profile, action }) {
-  const initials = (profile?.username || profile?.email || '?').slice(0, 2).toUpperCase()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--surface3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 500, color: 'var(--text2)', flexShrink: 0 }}>
-        {initials}
-      </div>
+      <Avatar profile={profile} size={40} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.username || 'Utilisateur'}</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.email}</div>
