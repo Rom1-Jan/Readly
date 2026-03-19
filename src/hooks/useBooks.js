@@ -172,9 +172,9 @@ function computeStreak(sessions) {
   return streak
 }
 
-function computePagesPerDay(sessions, days) {
+function computePagesPerDay(sessions, nbDays) {
   const result = []
-  for (let i = days - 1; i >= 0; i--) {
+  for (let i = nbDays - 1; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
     const dateStr = toDateStr(d)
@@ -184,9 +184,9 @@ function computePagesPerDay(sessions, days) {
   return result
 }
 
-function computePagesPerWeek(sessions, weeks) {
+function computePagesPerWeek(sessions, nbWeeks) {
   const result = []
-  for (let i = weeks - 1; i >= 0; i--) {
+  for (let i = nbWeeks - 1; i >= 0; i--) {
     const start = new Date(); start.setDate(start.getDate() - i * 7 - start.getDay())
     const end   = new Date(start); end.setDate(start.getDate() + 6)
     const pages = sessions.filter(s => {
