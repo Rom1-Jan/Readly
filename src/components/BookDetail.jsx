@@ -20,9 +20,11 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
   if (!book) return null
 
   const bookSessions = sessions.filter(s => s.book_id === book.id)
-  const pct        = book.total_pages > 0 ? Math.min(Math.round((book.current_page / book.total_pages) * 100), 100) : 0
-  const totalMin   = bookSessions.reduce((s, r) => s + (r.duration || 0), 0)
-  const totalPages = bookSessions.reduce((s, r) => s + (r.pages_read || 0), 0)
+  const totalMin        = bookSessions.reduce((s, r) => s + (r.duration || 0), 0)
+  const totalPages      = bookSessions.reduce((s, r) => s + (r.pages_read || 0), 0)
+  const sessionCurrentPage = Math.min(totalPages, book.total_pages || 99999)
+  const sessionPct      = book.total_pages > 0 ? Math.min(Math.round((sessionCurrentPage / book.total_pages) * 100), 100) : 0
+  const pct             = sessionPct
 
   const panel = (
     <div style={{
@@ -75,10 +77,10 @@ export default function BookDetail({ book, sessions, onUpdate, onAddSession, onC
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--surface2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text2)', marginBottom: 6 }}>
             <span>Progression</span>
-            <span style={{ fontWeight: 500 }}>Page {book.current_page} / {book.total_pages} — {pct}%</span>
+            <span style={{ fontWeight: 500 }}>Page {sessionCurrentPage} / {book.total_pages} — {sessionPct}%</span>
           </div>
           <div style={{ height: 5, background: 'var(--surface3)', borderRadius: 3 }}>
-            <div style={{ height: '100%', width: pct + '%', background: 'var(--accent)', borderRadius: 3, transition: 'width 0.4s' }} />
+            <div style={{ height: '100%', width: sessionPct + '%', background: 'var(--accent)', borderRadius: 3, transition: 'width 0.4s' }} />
           </div>
         </div>
       )}
@@ -125,7 +127,7 @@ function InfoTab({ book, onUpdate, totalMin, totalPages }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {[
           { label: 'Pages totales', value: book.total_pages || '—' },
-          { label: 'Page actuelle', value: currentPage > 0 ? `${currentPage} (${pct}%)` : '—' },
+          { label: 'Page actuelle', value: currentPage > 0 ? `${currentPage}` : '—' },
           { label: 'Temps total',   value: totalMin === 0 ? '—' : h > 0 ? `${h}h ${min}m` : `${min} min` },
         ].map((s, i) => (
           <div key={i} style={{ background: 'var(--surface2)', borderRadius: 'var(--radius-sm)', padding: '12px 14px' }}>
